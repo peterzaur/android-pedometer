@@ -20,6 +20,7 @@ package name.bagi.levente.pedometer;
 
 import java.util.ArrayList;
 
+import android.content.Context;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -46,7 +47,13 @@ public class StepDetector implements SensorEventListener
     
     private ArrayList<StepListener> mStepListeners = new ArrayList<StepListener>();
     
-    public StepDetector() {
+    private Context nContext;
+    private Sensor nSensor;
+    private SensorManager nSensorManager;
+    private AngleDetector nAngleDetector;
+    
+    public StepDetector(Context nContext) {
+    	this.nContext = nContext;
         int h = 480; // TODO: remove this constant
         mYOffset = h * 0.5f;
         mScale[0] = - (h * 0.5f * (1.0f / (SensorManager.STANDARD_GRAVITY * 2)));
@@ -63,11 +70,20 @@ public class StepDetector implements SensorEventListener
     
     //public void onSensorChanged(int sensor, float[] values) {
     public void onSensorChanged(SensorEvent event) {
-        Sensor sensor = event.sensor; 
+        Sensor sensor = event.sensor;
+        nAngleDetector = new AngleDetector();
+        nSensorManager = (SensorManager) nContext.getSystemService(Context.SENSOR_SERVICE);
+        
         synchronized (this) {
             if (sensor.getType() == Sensor.TYPE_ORIENTATION) {
-            }
-            else {
+            } else if (sensor.getType() == Sensor.TYPE_GYROSCOPE) {
+            	float axisX = event.values[0];
+                float axisY = event.values[1];
+                float axisZ = event.values[2];
+            	Log.i(TAG, Float.toString(axisX));
+            	Log.i(TAG, Float.toString(axisY));
+            	Log.i(TAG, Float.toString(axisZ));    	
+            } else {
                 int j = (sensor.getType() == Sensor.TYPE_ACCELEROMETER) ? 1 : 0;
                 if (j == 1) {
                     float vSum = 0;
@@ -92,10 +108,19 @@ public class StepDetector implements SensorEventListener
                             boolean isNotContra = (mLastMatch != 1 - extType);
                             
                             if (isAlmostAsLargeAsPrevious && isPreviousLargeEnough && isNotContra) {
-                                Log.i(TAG, "step");
+                            	Log.i(TAG, "step");
                                 for (StepListener stepListener : mStepListeners) {
                                     stepListener.onStep();
                                 }
+                                nSensor = nSensorManager.getDefaultSensor(
+                                    	Sensor.TYPE_ORIENTATION
+                                    	);
+                                nSensorManager.registerListener(nAngleDetector,
+                                        nSensor,
+                                        SensorManager.SENSOR_DELAY_FASTEST);
+                                Log.i(TAG, sensor.getName());
+                                Log.i(TAG, Integer.toString(sensor.getType()));
+                                Log.i(TAG, Integer.toString(Sensor.TYPE_ACCELEROMETER));
                                 mLastMatch = extType;
                             }
                             else {
@@ -109,6 +134,7 @@ public class StepDetector implements SensorEventListener
                 }
             }
         }
+        nSensorManager.unregisterListener(nAngleDetector);
     }
     
     public void onAccuracyChanged(Sensor sensor, int accuracy) {

@@ -29,6 +29,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.hardware.Sensor;
+import android.hardware.SensorEvent;
 import android.hardware.SensorManager;
 import android.os.Binder;
 import android.os.IBinder;
@@ -108,7 +109,7 @@ public class StepService extends Service {
         acquireWakeLock();
         
         // Start detecting
-        mStepDetector = new StepDetector();
+        mStepDetector = new StepDetector(this);
         mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         registerDetector();
 
@@ -198,7 +199,7 @@ public class StepService extends Service {
         mSensor = mSensorManager.getDefaultSensor(
             Sensor.TYPE_ACCELEROMETER /*| 
             Sensor.TYPE_MAGNETIC_FIELD | 
-            Sensor.TYPE_ORIENTATION*/);
+            Sensor.TYPE_ORIENTATION*/);        		
         mSensorManager.registerListener(mStepDetector,
             mSensor,
             SensorManager.SENSOR_DELAY_FASTEST);
